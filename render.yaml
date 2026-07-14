@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: callai-analytics
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg libsndfile1
+      pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port=$PORT --server.address=0.0.0.0
+    envVars:
+      - key: CRM_EMAIL
+        value: ispark@dialdesk.in
+      - key: CRM_PASSWORD
+        value: 1234
+      - key: GROQ_API_KEY
+        sync: false
+      - key: HF_TOKEN
+        sync: false
