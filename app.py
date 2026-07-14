@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 CallAI Analytics - Streamlit App (Render Optimized)
+===================================================
+Sentiment Analysis Disabled for Render Free Tier (Memory Optimization)
+All other features work perfectly:
+- CRM Integration
+- VAD (Talk Time / Silence / Dead Air)
+- Groq Whisper Transcription
+- Agent Analytics
+- Excel Reports
 """
 
 import os
@@ -31,13 +39,12 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
-os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
 # ============================================================
-# PAGE CONFIG
+# PAGE CONFIG + SAAS-STYLE THEME
 # ============================================================
 st.set_page_config(
-    page_title="CallAI · Talk-Time + Sentiment",
+    page_title="CallAI · Talk-Time",
     page_icon="📞",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -49,7 +56,17 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     [data-testid="stSidebar"] {display: none;}
-    .block-container {padding-top: 1.5rem; padding-bottom: 3rem; max-width: 1100px;}
+
+    html, body, [class*="css"] {
+        font-family: -apple-system, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+    }
+
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+        max-width: 1100px;
+    }
+
     .callai-hero {
         background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
         padding: 28px 32px;
@@ -58,8 +75,18 @@ st.markdown("""
         margin-bottom: 28px;
         box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
     }
-    .callai-hero h1 {font-size: 28px; font-weight: 700; margin: 0 0 4px 0; color: white;}
-    .callai-hero p {font-size: 15px; margin: 0; opacity: 0.9;}
+    .callai-hero h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        color: white;
+    }
+    .callai-hero p {
+        font-size: 15px;
+        margin: 0;
+        opacity: 0.9;
+    }
+
     .step-card {
         background: #FFFFFF;
         border: 1px solid #ECECF4;
@@ -81,8 +108,20 @@ st.markdown("""
         font-size: 14px;
         margin-right: 10px;
     }
-    .step-title {font-size: 17px; font-weight: 700; color: #14142B; display: inline-flex; align-items: center; margin-bottom: 6px;}
-    .step-subtitle {color: #6E7191; font-size: 13.5px; margin: 0 0 16px 40px;}
+    .step-title {
+        font-size: 17px;
+        font-weight: 700;
+        color: #14142B;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+    .step-subtitle {
+        color: #6E7191;
+        font-size: 13.5px;
+        margin: 0 0 16px 40px;
+    }
+
     .metric-pill {
         background: #F5F4FF;
         border: 1px solid #E4E1FF;
@@ -90,10 +129,26 @@ st.markdown("""
         padding: 14px 18px;
         text-align: center;
     }
-    .metric-pill .value {font-size: 24px; font-weight: 800; color: #4F46E5;}
-    .metric-pill .label {font-size: 12.5px; color: #6E7191; margin-top: 2px;}
-    div.stButton > button {border-radius: 10px; font-weight: 600; padding: 0.55rem 1.2rem; border: none;}
-    div.stButton > button[kind="primary"] {background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);}
+    .metric-pill .value {
+        font-size: 24px;
+        font-weight: 800;
+        color: #4F46E5;
+    }
+    .metric-pill .label {
+        font-size: 12.5px;
+        color: #6E7191;
+        margin-top: 2px;
+    }
+
+    div.stButton > button {
+        border-radius: 10px;
+        font-weight: 600;
+        padding: 0.55rem 1.2rem;
+        border: none;
+    }
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    }
     div.stDownloadButton > button {
         border-radius: 10px;
         font-weight: 700;
@@ -102,6 +157,14 @@ st.markdown("""
         border: none;
         padding: 0.7rem 1.4rem;
     }
+
+    div[role="radiogroup"] label {
+        border: 1px solid #E4E1FF;
+        padding: 6px 14px;
+        border-radius: 20px;
+        margin-right: 6px;
+    }
+
     .status-banner-ok {
         background: #ECFDF5;
         border: 1px solid #6EE7B7;
@@ -120,6 +183,7 @@ st.markdown("""
         font-weight: 600;
         font-size: 13.5px;
     }
+    
     .agent-card {
         background: #F8F7FF;
         border-left: 4px solid #4F46E5;
@@ -127,34 +191,51 @@ st.markdown("""
         border-radius: 8px;
         margin: 8px 0;
     }
-    .agent-card .agent-name {font-weight: 700; color: #14142B; font-size: 15px;}
-    .agent-card .agent-stats {color: #6E7191; font-size: 13px; margin-top: 4px;}
+    .agent-card .agent-name {
+        font-weight: 700;
+        color: #14142B;
+        font-size: 15px;
+    }
+    .agent-card .agent-stats {
+        color: #6E7191;
+        font-size: 13px;
+        margin-top: 4px;
+    }
+    .agent-card .highlight {
+        color: #4F46E5;
+        font-weight: 600;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="callai-hero">
-    <h1>📞 CallAI · Talk-Time + Sentiment</h1>
-    <p>Pick a client, fetch calls, filter, get Talk-Time / Silence / Dead-Air, and analyse sentiment.</p>
+    <h1>📞 CallAI · Talk-Time</h1>
+    <p>Pick a client, fetch calls, filter, get Talk-Time / Silence / Dead-Air with Groq Whisper transcription.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ============================================================
 # CREDENTIALS - Loaded from Environment Variables (Render)
 # ============================================================
-CRM_EMAIL = os.environ.get("CRM_EMAIL", "ispark@dialdesk.in")
-CRM_PASSWORD = os.environ.get("CRM_PASSWORD", "1234")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-HF_TOKEN = os.environ.get("HF_TOKEN", None)
-if HF_TOKEN:
-    os.environ["HF_TOKEN"] = HF_TOKEN
+try:
+    CRM_EMAIL = os.environ.get("CRM_EMAIL", "ispark@dialdesk.in")
+    CRM_PASSWORD = os.environ.get("CRM_PASSWORD", "1234")
+except:
+    CRM_EMAIL = "ispark@dialdesk.in"
+    CRM_PASSWORD = "1234"
+
+try:
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+except:
+    GROQ_API_KEY = ""
 
 CRM_BASE = "https://crmapi.dialdesk.in"
 LOGIN_URL = f"{CRM_BASE}/auth/login"
 CDR_URL = f"{CRM_BASE}/report/cdr_report"
 
 # ============================================================
-# CLIENTS
+# ⚠️ CLIENTS - name -> company_id (edit this dict to add/remove clients)
 # ============================================================
 CLIENTS = {
     "Weebo": "687",
@@ -166,7 +247,7 @@ CLIENTS = {
 }
 
 # ============================================================
-# SESSION STATE
+# SESSION STATE DEFAULTS
 # ============================================================
 defaults = {
     "token": None,
@@ -289,7 +370,7 @@ def resolve_audio_url(recording_url):
     return html_recording_to_direct_url(recording_url)
 
 # ============================================================
-# COLUMN MAPPING
+# FLEXIBLE COLUMN MAPPING
 # ============================================================
 COLUMN_CANDIDATES = {
     "date": ["call_date", "CallDate", "Date"],
@@ -403,7 +484,7 @@ def filter_out_vdcl_calls(df):
     return filtered_df, removed_count
 
 # ============================================================
-# AGENT ANALYTICS
+# AGENT ANALYTICS FUNCTION
 # ============================================================
 def generate_agent_analytics(df, duration_col='_duration_sec'):
     if df is None or len(df) == 0:
@@ -466,65 +547,22 @@ def generate_agent_analytics(df, duration_col='_duration_sec'):
     return agent_stats
 
 # ============================================================
-# 🆕 SENTIMENT ANALYSIS - RENDER OPTIMIZED (Smaller Model)
+# 🆕 GROQ WHISPER + SENTIMENT FUNCTIONS - SENTIMENT DISABLED
 # ============================================================
 
-@st.cache_resource(show_spinner=False)
+# Sentiment Analysis - DISABLED for Render Free Tier
 def load_sentiment_pipeline():
-    """
-    Load a lightweight sentiment analysis model optimized for Render's memory limits.
-    Uses distilbert (260MB) instead of RoBERTa (500MB+).
-    """
-    try:
-        from transformers import pipeline
-        
-        # Show progress
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        status_text.text("⏳ Downloading sentiment model (this may take 2-3 minutes)...")
-        progress_bar.progress(20)
-        
-        # ✅ Use smaller model for Render Free Tier
-        model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-        
-        if HF_TOKEN:
-            pipe = pipeline(
-                "sentiment-analysis",
-                model=model_name,
-                device=-1,  # CPU
-                token=HF_TOKEN
-            )
-        else:
-            pipe = pipeline(
-                "sentiment-analysis",
-                model=model_name,
-                device=-1
-            )
-        
-        progress_bar.progress(80)
-        status_text.text("🔄 Testing model...")
-        
-        # Test the pipeline to ensure it's loaded
-        test_result = pipe("This is a test")
-        if test_result:
-            progress_bar.progress(100)
-            status_text.text("✅ Model loaded successfully!")
-            time.sleep(1)
-            progress_bar.empty()
-            status_text.empty()
-            return pipe
-        else:
-            progress_bar.empty()
-            status_text.empty()
-            return None
-            
-    except Exception as e:
-        st.warning(f"⚠️ Sentiment model not available: {e}")
-        st.info("💡 Tip: Upgrade to Starter plan ($7/month) for more memory, or use the app without sentiment analysis.")
-        return None
+    """Sentiment analysis disabled to save memory on Render Free Tier"""
+    return None
+
+def analyze_sentiment(text, pipeline):
+    """Return N/A when sentiment is disabled"""
+    return "N/A"
 
 def groq_transcribe(audio_file_path, api_key):
+    """
+    Send audio file to Groq Whisper API and return the transcribed text.
+    """
     if not api_key:
         return ""
     try:
@@ -540,32 +578,8 @@ def groq_transcribe(audio_file_path, api_key):
     except Exception as e:
         return ""
 
-def analyze_sentiment(text, pipeline):
-    """
-    Use the loaded pipeline to get sentiment label.
-    For distilbert: returns 'POSITIVE' or 'NEGATIVE'
-    """
-    if not text or not text.strip():
-        return "N/A"
-    if pipeline is None:
-        return "N/A"
-    
-    try:
-        results = pipeline(text)
-        if results and isinstance(results, list) and len(results) > 0:
-            label = results[0]['label']
-            if label.upper() == 'POSITIVE':
-                return "Positive"
-            elif label.upper() == 'NEGATIVE':
-                return "Negative"
-            else:
-                return "Neutral"
-    except Exception as e:
-        return "N/A"
-    return "N/A"
-
 # ============================================================
-# CUSTOM FILTER
+# CUSTOM FILTER FUNCTION
 # ============================================================
 def apply_custom_filter(df, filter_expr):
     if df is None or len(df) == 0:
@@ -590,7 +604,7 @@ def apply_custom_filter(df, filter_expr):
         return df
 
 # ============================================================
-# STEP 1 — CLIENT + DATE RANGE
+# STEP 1 — CLIENT + DATE RANGE + FETCH
 # ============================================================
 st.markdown('<div class="step-card">', unsafe_allow_html=True)
 st.markdown('<div class="step-title"><span class="step-badge">1</span>Choose Client & Date Range</div>', unsafe_allow_html=True)
@@ -619,7 +633,7 @@ fetch_clicked = st.button("📥  Fetch Calls", type="primary")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ============================================================
-# FETCH CDR
+# FETCH CDR REPORT
 # ============================================================
 if fetch_clicked:
     if from_date > to_date:
@@ -724,7 +738,10 @@ if have_data:
             st.markdown("""
             **📝 Enter filter expression:**
             - Use `duration` as the variable name
-            - Examples: `duration < 120`, `duration > 480`, `duration >= 300 and duration <= 600`
+            - Examples:
+                - `duration < 120` (less than 2 min)
+                - `duration > 480` (greater than 8 min)
+                - `duration >= 300 and duration <= 600` (between 5-10 min)
             """)
             custom_filter_expr = st.text_input(
                 "Filter expression",
@@ -770,7 +787,7 @@ if have_data:
     elif bucket == "Custom Filter":
         matched = apply_custom_filter(cdr_df, custom_filter_expr)
         if len(matched) == 0:
-            st.warning("No calls match your filter expression. Please check the syntax.")
+            st.warning("No calls match your filter expression.")
     else:
         matched = cdr_df
 
@@ -806,11 +823,11 @@ if have_data:
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ============================================================
-    # STEP 3 — RUN VAD + SENTIMENT ANALYSIS
+    # STEP 3 — RUN VAD + TRANSCRIPTION (NO SENTIMENT)
     # ============================================================
     st.markdown('<div class="step-card">', unsafe_allow_html=True)
-    st.markdown('<div class="step-title"><span class="step-badge">3</span>Run Talk-Time & Sentiment Analysis</div>', unsafe_allow_html=True)
-    st.markdown('<p class="step-subtitle">Downloads recordings, measures speech/silence, transcribes with Groq Whisper, and performs sentiment analysis.</p>', unsafe_allow_html=True)
+    st.markdown('<div class="step-title"><span class="step-badge">3</span>Run Talk-Time & Transcription</div>', unsafe_allow_html=True)
+    st.markdown('<p class="step-subtitle">Downloads recordings, measures speech/silence, and transcribes with Groq Whisper.</p>', unsafe_allow_html=True)
 
     with st.expander("⚙️ Fine-tune detection accuracy (optional)"):
         st.caption(
@@ -836,11 +853,9 @@ if have_data:
         elif len(selected_df) == 0:
             st.warning("No calls selected.")
         else:
-            sentiment_pipeline = load_sentiment_pipeline()
+            # Show info about disabled sentiment
+            st.info("ℹ️ Sentiment analysis is disabled on Render Free Tier to save memory. Upgrade to Starter plan ($7/month) to enable it.")
             
-            if sentiment_pipeline is None:
-                st.warning("⚠️ Sentiment analysis disabled due to memory constraints. The app will still work without sentiment.")
-
             @st.cache_resource(show_spinner="Loading voice-detection model (first run only)...")
             def load_vad_model():
                 hub_dir = os.path.expanduser("~/.cache/torch/hub")
@@ -955,7 +970,6 @@ if have_data:
                         "talk_time": None, "silence_time": None,
                         "dead_air": None, "longest_silence": None, "duration": None,
                     }
-                    sentiment = "N/A"
                     transcript = None
                     debug_status = "OK"
                     actual_mp3 = None
@@ -1007,18 +1021,16 @@ if have_data:
                                             metrics = compute_metrics(merged, total_duration)
                                             metrics["duration"] = round(total_duration, 2)
                                             
+                                            # Transcription only (no sentiment)
                                             if GROQ_API_KEY:
                                                 try:
                                                     transcript = groq_transcribe(mp3_path, GROQ_API_KEY)
-                                                    sentiment = analyze_sentiment(transcript, sentiment_pipeline)
                                                 except Exception as e:
-                                                    debug_status = f"Groq/Sentiment error: {str(e)[:100]}"
+                                                    debug_status = f"Groq error: {str(e)[:100]}"
                                                     transcript = None
-                                                    sentiment = "Error"
                                                 else:
                                                     debug_status = "OK"
                                             else:
-                                                sentiment = "No API Key"
                                                 debug_status = "No API Key"
                     except requests.exceptions.RequestException as e:
                         debug_status = f"Network error: {str(e)[:100]}"
@@ -1049,7 +1061,7 @@ if have_data:
                         "Silence Time": metrics.get("silence_time"),
                         "Dead Air(included in Silence time)": metrics.get("dead_air"),
                         "Longest Silence": metrics.get("longest_silence"),
-                        "Sentiment": sentiment,
+                        "Transcription": transcript[:500] + "..." if transcript and len(transcript) > 500 else transcript,
                         "_debug_status": debug_status,
                     })
                     progress.progress((i + 1) / total_rows)
@@ -1074,7 +1086,7 @@ if have_data:
                 "Silence Time",
                 "Dead Air(included in Silence time)",
                 "Longest Silence",
-                "Sentiment",
+                "Transcription",
                 "Audio Duration(sec)",
                 "Actual MP3",
             ]
@@ -1095,7 +1107,6 @@ if have_data:
             
             if agent_analytics_df is not None and len(agent_analytics_df) > 0:
                 st.markdown("### 📊 Agent-Wise Analytics")
-                st.info("Comprehensive breakdown of call performance by agent.")
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -1151,7 +1162,7 @@ if have_data:
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ============================================================
-    # STEP 4 — DOWNLOAD
+    # STEP 4 — DOWNLOAD FINAL REPORT
     # ============================================================
     if st.session_state.get("final_df") is not None:
         EXPORT_COLUMNS = [
@@ -1164,7 +1175,7 @@ if have_data:
             "Silence Time",
             "Dead Air(included in Silence time)",
             "Longest Silence",
-            "Sentiment",
+            "Transcription",
             "Audio Duration(sec)",
             "Actual MP3",
         ]
@@ -1194,7 +1205,7 @@ if have_data:
         st.download_button(
             "⬇️  Download Excel Report",
             data=buf,
-            file_name=f"CallAI_Talk_Time_Report_{client_name.replace(' ', '_')}.xlsx",
+            file_name=f"CallAI_Report_{client_name.replace(' ', '_')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         st.markdown('</div>', unsafe_allow_html=True)
