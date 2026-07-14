@@ -37,6 +37,13 @@ import torch
 import groq
 
 # ============================================================
+# MEMORY OPTIMIZATION for Render (Free Tier)
+# ============================================================
+torch.set_num_threads(1)  # Memory usage reduce karein
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
+# ============================================================
 # PAGE CONFIG + SAAS-STYLE THEME
 # ============================================================
 st.set_page_config(
@@ -216,22 +223,32 @@ LOGIN_URL = f"{CRM_BASE}/auth/login"
 CDR_URL = f"{CRM_BASE}/report/cdr_report"
 
 # ============================================================
-# ⚠️ FIXED CRM CREDENTIALS - Loaded from Streamlit Secrets (with fallback)
+# ⚠️ CREDENTIALS - Loaded from Environment Variables (Render)
 # ============================================================
 try:
-    CRM_EMAIL = st.secrets["CRM_EMAIL"]
-    CRM_PASSWORD = st.secrets["CRM_PASSWORD"]
+    CRM_EMAIL = os.environ.get("CRM_EMAIL", "ispark@dialdesk.in")
+    CRM_PASSWORD = os.environ.get("CRM_PASSWORD", "1234")
 except:
     CRM_EMAIL = "ispark@dialdesk.in"
     CRM_PASSWORD = "1234"
 
 # ============================================================
-# GROQ API KEY - load from secrets
+# GROQ API KEY - load from environment
 # ============================================================
 try:
-    GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 except:
     GROQ_API_KEY = ""
+
+# ============================================================
+# HUGGING FACE TOKEN - load from environment
+# ============================================================
+try:
+    HF_TOKEN = os.environ.get("HF_TOKEN", None)
+    if HF_TOKEN:
+        os.environ["HF_TOKEN"] = HF_TOKEN
+except:
+    HF_TOKEN = None
 
 # ============================================================
 # ⚠️ CLIENTS - name -> company_id (edit this dict to add/remove clients)
@@ -613,12 +630,23 @@ def load_sentiment_pipeline():
     try:
         # Lazy import - only loads transformers when this function is called
         from transformers import pipeline
-        return pipeline(
-            "sentiment-analysis",
-            model="cardiffnlp/twitter-roberta-base-sentiment",
-            device=-1,  # CPU
-            top_k=None
-        )
+        
+        if HF_TOKEN:
+            # Authenticated request with token
+            return pipeline(
+                "sentiment-analysis",
+                model="cardiffnlp/twitter-roberta-base-sentiment",
+                device=-1,  # CPU
+                top_k=None,
+                token=HF_TOKEN
+            )
+        else:
+            return pipeline(
+                "sentiment-analysis",
+                model="cardiffnlp/twitter-roberta-base-sentiment",
+                device=-1,  # CPU
+                top_k=None
+            )
     except Exception as e:
         st.warning(f"⚠️ Sentiment model not available: {e}")
         return None
@@ -932,7 +960,7 @@ if have_data:
     table_df = table_df[final_display_cols]
 
     st.markdown(f"### Filtered Data – Sorted by Duration ({'ascending' if ascending_sort else 'descending'})")
-    st.dataframe(table_df, use_container_width=True, height=350)
+    st.dataframe(table_df, width='stretch', height=350)  # Fixed: use_container_width → width='stretch'
 
     st.markdown('</div>', unsafe_allow_html=True)  # end step-card
 
@@ -1228,7 +1256,7 @@ if have_data:
             else:
                 st.success("✅ All calls processed successfully.")
 
-            st.dataframe(final_df.drop(columns=["_debug_status"]), use_container_width=True, height=380)
+            st.dataframe(final_df.drop(columns=["_debug_status"]), width='stretch', height=380)  # Fixed
             
             # Display Agent Analytics if available
             if agent_analytics_df is not None and len(agent_analytics_df) > 0:
@@ -1284,7 +1312,7 @@ if have_data:
                         'Medium_Calls', 'Medium_%', 'Large_Calls', 'Large_%',
                         'Avg_Duration_Formatted', 'Total_Duration_Formatted'
                     ]],
-                    use_container_width=True,
+                    width='stretch',  # Fixed
                     height=300
                 )
 
